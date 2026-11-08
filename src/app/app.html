@@ -1,0 +1,65 @@
+<div class="min-h-screen bg-gray-50 flex">
+  <!-- BARRA LATERAL (SIDEBAR) -->
+  <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between p-5 shadow-xl">
+    <div>
+      <!-- Logo de la empresa -->
+      <div class="flex items-center space-x-3 mb-8 px-2">
+        <span class="text-3xl">📦</span>
+        <div>
+          <h2 class="font-bold text-lg leading-tight tracking-wide">StockFlow</h2>
+          <span class="text-xs text-slate-400 font-mono">v1.0 Enterprise</span>
+        </div>
+      </div>
+
+      <!-- Menú de Navegación -->
+      <nav class="space-y-1.5">
+        <a 
+          routerLink="/dashboard" 
+          routerLinkActive="bg-blue-600 text-white font-semibold"
+          class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 transition">
+          <span>📊</span>
+          <span>Dashboard</span>
+        </a>
+
+        <a 
+          routerLink="/products" 
+          routerLinkActive="bg-blue-600 text-white font-semibold"
+          class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 transition">
+          <span>🏷️</span>
+          <span>Inventario</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Pie del Sidebar -->
+    <div class="border-t border-slate-800 pt-4 px-2">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-bold text-xs">
+          A
+        </div>
+        <div>
+          <p class="text-xs font-medium text-white">Admin User</p>
+          <p class="text-[10px] text-green-400 font-mono">● Online (Local)</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="flex-1 flex flex-col">
+    <!-- Header Superior -->
+    <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8">
+      <div class="text-sm font-medium text-gray-500">
+        Sistema de Gestión de Inventario y Ventas
+      </div>
+      <div class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full font-mono">
+        Backend: <span class="text-green-600 font-bold">localhost:8080</span>
+      </div>
+    </header>
+
+    <!-- Área de Vistas Dinámicas -->
+    <main class="flex-1 p-8 max-w-7xl w-full mx-auto">
+      <router-outlet />
+    </main>
+  </div>
+</div>
