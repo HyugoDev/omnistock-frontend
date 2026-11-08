@@ -3,7 +3,10 @@ import { CommonModule, CurrencyPipe, NgClass } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ProductService } from '../../../services/product.service';
 import { CategoryService } from '../../../services/category.service';
-import { ProductRequest, ProductType, UnitOfMeasure } from '../../../models/product.model';
+import { WarehouseService } from '../../../services/warehouse.service';
+import { BatchService, FefoAllocation } from '../../../services/batch.service';
+import { SerialService } from '../../../services/serial.service';
+import { ProductRequest, ProductResponse, ProductType, UnitOfMeasure, ProductSerial, AssetStatus } from '../../../models/product.model';
 
 @Component({
   selector: 'app-product-list',
@@ -16,6 +19,9 @@ export class ProductList implements OnInit {
 
   protected readonly productService = inject(ProductService);
   protected readonly categoryService = inject(CategoryService);
+  protected readonly warehouseService = inject(WarehouseService);
+  protected readonly batchService = inject(BatchService);
+  protected readonly serialService = inject(SerialService);
   private readonly fb = inject(FormBuilder);
 
   // Señales de control del Modal y Errores
@@ -23,7 +29,18 @@ export class ProductList implements OnInit {
   public errorMessage = signal<string | null>(null);
   public isSubmitting = signal<boolean>(false);
 
-  // Formulario Reactivo con soporte para Inventario Universal
+  // Modales de Operaciones Especiales (Fase 3)
+  public isTransferModalOpen = signal<boolean>(false);
+  public isBatchModalOpen = signal<boolean>(false);
+  public isSerialModalOpen = signal<boolean>(false);
+  public selectedProduct = signal<ProductResponse | null>(null);
+
+  // Despacho FEFO resultado
+  public fefoDispatchSuccess = signal<string | null>(null);
+  public fefoAllocations = signal<FefoAllocation[]>([]);
+  public isDispatchingFefo = signal<boolean>(false);
+
+  // Formulario Reactivo con soporte para Inventario Universal Adaptativo
   public productForm: FormGroup = this.fb.group({
     barcode: ['', [Validators.required, Validators.maxLength(50)]],
     sku: ['', [Validators.maxLength(50)]],
@@ -36,7 +53,45 @@ export class ProductList implements OnInit {
     currentStock: [0, [Validators.required, Validators.min(0)]],
     minStock: [5, [Validators.required, Validators.min(0)]],
     categoryId: [null, [Validators.required]],
-    attributesJson: ['']
+    attributesJson: [''],
+    // Campos adaptativos opcionales
+    initialBatchNumber: [''],
+    initialExpirationDate: [''],
+    initialManufacturingDate: [''],
+    initialSerialNumber: [''],
+    initialSerialNotes: ['']
+  });
+
+  // Formulario de Transferencia entre Bodegas
+  public transferForm: FormGroup = this.fb.group({
+    originWarehouseId: [null, [Validators.required]],
+    destinationWarehouseId: [null, [Validators.required]],
+    productId: [null, [Validators.required]],
+    quantity: [1, [Validators.required, Validators.min(0.01)]],
+    referenceDocument: [''],
+    notes: ['']
+  });
+
+  // Formulario de Nuevo Lote
+  public newBatchForm: FormGroup = this.fb.group({
+    batchNumber: ['', [Validators.required, Validators.maxLength(50)]],
+    expirationDate: ['', [Validators.required]],
+    manufacturingDate: [''],
+    initialQuantity: [10, [Validators.required, Validators.min(0.01)]],
+    unitCost: [null, [Validators.min(0)]]
+  });
+
+  // Formulario de Despacho FEFO
+  public fefoDispatchForm: FormGroup = this.fb.group({
+    quantity: [1, [Validators.required, Validators.min(0.01)]],
+    referenceDocument: ['POS-VENTA-FEFO'],
+    notes: ['']
+  });
+
+  // Formulario de Nuevo Serial
+  public newSerialForm: FormGroup = this.fb.group({
+    serialNumber: ['', [Validators.required, Validators.maxLength(100)]],
+    notes: ['']
   });
 
   // Opciones de unidades de medida
@@ -69,7 +124,7 @@ export class ProductList implements OnInit {
     this.productService.searchQuery.set('');
   }
 
-  // Abrir modal con tipo por defecto o preseleccionado
+  // Abrir modal de creación
   openModal(type: ProductType = 'STANDARD'): void {
     this.errorMessage.set(null);
     this.productForm.reset({
@@ -89,7 +144,7 @@ export class ProductList implements OnInit {
     this.isModalOpen.set(false);
   }
 
-  // Guardar nuevo producto (POST a Spring Boot)
+  // Guardar nuevo producto (POST a Spring Boot con inicialización adaptativa opcional)
   onSubmit(): void {
     if (this.productForm.invalid) {
       this.productForm.markAllAsTouched();
@@ -100,6 +155,8 @@ export class ProductList implements OnInit {
     this.errorMessage.set(null);
 
     const formValue = this.productForm.value;
+    const activeWh = this.warehouseService.activeWarehouse();
+
     const payload: ProductRequest = {
       barcode: formValue.barcode,
       sku: formValue.sku ? formValue.sku.trim() : null,
@@ -116,7 +173,30 @@ export class ProductList implements OnInit {
     };
 
     this.productService.createProduct(payload).subscribe({
-      next: () => {
+      next: (createdProduct) => {
+        // Inicialización adaptativa: Si se llenó lote inicial
+        if (formValue.productType === 'BATCH_EXPIRABLE' && formValue.initialBatchNumber && formValue.initialExpirationDate && activeWh) {
+          this.batchService.createBatch({
+            batchNumber: formValue.initialBatchNumber,
+            productId: createdProduct.id,
+            warehouseId: activeWh.id,
+            expirationDate: formValue.initialExpirationDate,
+            manufacturingDate: formValue.initialManufacturingDate || null,
+            initialQuantity: formValue.currentStock || 1,
+            unitCost: formValue.purchasePrice
+          }).subscribe();
+        }
+
+        // Inicialización adaptativa: Si se llenó número de serie inicial
+        if (formValue.productType === 'SERIALIZED_ASSET' && formValue.initialSerialNumber && activeWh) {
+          this.serialService.registerSerial({
+            serialNumber: formValue.initialSerialNumber,
+            productId: createdProduct.id,
+            warehouseId: activeWh.id,
+            notes: formValue.initialSerialNotes || 'Registro inicial'
+          }).subscribe();
+        }
+
         this.isSubmitting.set(false);
         this.closeModal();
       },
@@ -134,6 +214,194 @@ export class ProductList implements OnInit {
         error: (err) => alert(err.error?.message || 'Error al desactivar producto')
       });
     }
+  }
+
+  // ==========================================
+  // MODAL TRANSFERENCIA ENTRE BODEGAS
+  // ==========================================
+  openTransferModal(product?: ProductResponse): void {
+    const originId = this.warehouseService.activeWarehouse()?.id || null;
+    this.transferForm.reset({
+      originWarehouseId: originId,
+      productId: product ? product.id : null,
+      quantity: 1,
+      referenceDocument: 'TRF-' + Math.floor(1000 + Math.random() * 9000)
+    });
+    this.isTransferModalOpen.set(true);
+  }
+
+  closeTransferModal(): void {
+    this.isTransferModalOpen.set(false);
+  }
+
+  submitTransfer(): void {
+    if (this.transferForm.invalid) {
+      this.transferForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.transferForm.value;
+    this.warehouseService.transferStock(value).subscribe({
+      next: (res) => {
+        alert(res.message || 'Transferencia realizada con éxito');
+        this.closeTransferModal();
+        this.productService.getAllProducts().subscribe();
+      },
+      error: (err) => {
+        alert(err.error?.message || 'Error al transferir existencias');
+      }
+    });
+  }
+
+  // ==========================================
+  // MODAL LOTES & DESPACHO FEFO
+  // ==========================================
+  openBatchModal(product: ProductResponse): void {
+    this.selectedProduct.set(product);
+    this.fefoDispatchSuccess.set(null);
+    this.fefoAllocations.set([]);
+    this.newBatchForm.reset({ initialQuantity: 10 });
+    this.fefoDispatchForm.reset({ quantity: 1, referenceDocument: 'POS-FEFO-' + Date.now().toString().slice(-4) });
+    this.batchService.getBatchesByProduct(product.id).subscribe();
+    this.isBatchModalOpen.set(true);
+  }
+
+  closeBatchModal(): void {
+    this.isBatchModalOpen.set(false);
+    this.selectedProduct.set(null);
+  }
+
+  submitNewBatch(): void {
+    const prod = this.selectedProduct();
+    const activeWh = this.warehouseService.activeWarehouse();
+    if (!prod || !activeWh) return;
+
+    if (this.newBatchForm.invalid) {
+      this.newBatchForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.newBatchForm.value;
+    this.batchService.createBatch({
+      batchNumber: value.batchNumber,
+      productId: prod.id,
+      warehouseId: activeWh.id,
+      expirationDate: value.expirationDate,
+      manufacturingDate: value.manufacturingDate || null,
+      initialQuantity: value.initialQuantity,
+      unitCost: value.unitCost
+    }).subscribe({
+      next: () => {
+        this.newBatchForm.reset({ initialQuantity: 10 });
+        this.productService.getAllProducts().subscribe();
+      },
+      error: (err) => alert(err.error?.message || 'Error al registrar lote')
+    });
+  }
+
+  submitFefoDispatch(): void {
+    const prod = this.selectedProduct();
+    const activeWh = this.warehouseService.activeWarehouse();
+    if (!prod || !activeWh) return;
+
+    if (this.fefoDispatchForm.invalid) {
+      this.fefoDispatchForm.markAllAsTouched();
+      return;
+    }
+
+    this.isDispatchingFefo.set(true);
+    this.fefoDispatchSuccess.set(null);
+
+    const val = this.fefoDispatchForm.value;
+    this.batchService.dispatchFefo({
+      productId: prod.id,
+      warehouseId: activeWh.id,
+      quantity: val.quantity,
+      referenceDocument: val.referenceDocument,
+      notes: val.notes
+    }).subscribe({
+      next: (res) => {
+        this.isDispatchingFefo.set(false);
+        this.fefoDispatchSuccess.set(`¡Despacho FEFO exitoso! Se asignaron ${res.dispatchedQuantity} unidades.`);
+        this.fefoAllocations.set(res.allocations);
+        this.productService.getAllProducts().subscribe();
+      },
+      error: (err) => {
+        this.isDispatchingFefo.set(false);
+        alert(err.error?.message || 'Error al despachar lote con FEFO');
+      }
+    });
+  }
+
+  // ==========================================
+  // MODAL ACTIVOS SERIALIZADOS & PRÉSTAMOS
+  // ==========================================
+  openSerialModal(product: ProductResponse): void {
+    this.selectedProduct.set(product);
+    this.newSerialForm.reset();
+    this.serialService.getSerialsByProduct(product.id).subscribe();
+    this.isSerialModalOpen.set(true);
+  }
+
+  closeSerialModal(): void {
+    this.isSerialModalOpen.set(false);
+    this.selectedProduct.set(null);
+  }
+
+  submitNewSerial(): void {
+    const prod = this.selectedProduct();
+    const activeWh = this.warehouseService.activeWarehouse();
+    if (!prod || !activeWh) return;
+
+    if (this.newSerialForm.invalid) {
+      this.newSerialForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.newSerialForm.value;
+    this.serialService.registerSerial({
+      serialNumber: value.serialNumber,
+      productId: prod.id,
+      warehouseId: activeWh.id,
+      notes: value.notes
+    }).subscribe({
+      next: () => {
+        this.newSerialForm.reset();
+      },
+      error: (err) => alert(err.error?.message || 'Error al registrar activo')
+    });
+  }
+
+  loanAsset(serial: ProductSerial): void {
+    const name = prompt(`Ingrese el nombre del responsable para prestar el activo "${serial.serialNumber}":`);
+    if (!name || name.trim() === '') return;
+
+    this.serialService.updateStatus(serial.id, {
+      newStatus: 'LOANED',
+      assignedTo: name.trim()
+    }).subscribe({
+      error: (err) => alert(err.error?.message || 'Error al prestar activo')
+    });
+  }
+
+  returnAsset(serial: ProductSerial): void {
+    if (confirm(`¿Confirmar recepción del activo "${serial.serialNumber}" devuelto a bodega?`)) {
+      this.serialService.updateStatus(serial.id, {
+        newStatus: 'AVAILABLE'
+      }).subscribe({
+        error: (err) => alert(err.error?.message || 'Error al devolver activo')
+      });
+    }
+  }
+
+  setMaintenance(serial: ProductSerial): void {
+    const notes = prompt(`Motivo de mantenimiento para el activo "${serial.serialNumber}":`);
+    this.serialService.updateStatus(serial.id, {
+      newStatus: 'IN_MAINTENANCE',
+      notes: notes || 'Enviado a servicio técnico'
+    }).subscribe({
+      error: (err) => alert(err.error?.message || 'Error al actualizar estado')
+    });
   }
 
   // Helpers para presentación de Badges
@@ -158,6 +426,34 @@ export class ProductList implements OnInit {
       case 'STANDARD':
       default:
         return '📦 Estándar';
+    }
+  }
+
+  getAssetStatusBadge(status: AssetStatus): string {
+    switch (status) {
+      case 'AVAILABLE':
+        return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+      case 'LOANED':
+        return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+      case 'IN_MAINTENANCE':
+        return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+      case 'DECOMMISSIONED':
+      default:
+        return 'bg-slate-700 text-slate-400 border border-slate-600';
+    }
+  }
+
+  getAssetStatusLabel(status: AssetStatus): string {
+    switch (status) {
+      case 'AVAILABLE':
+        return 'Disponible';
+      case 'LOANED':
+        return 'Prestado';
+      case 'IN_MAINTENANCE':
+        return 'En Mantenimiento';
+      case 'DECOMMISSIONED':
+      default:
+        return 'Dado de Baja';
     }
   }
 }

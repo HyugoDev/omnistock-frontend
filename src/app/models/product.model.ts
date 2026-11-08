@@ -53,7 +53,9 @@ export interface ProductBatch {
   id: number;
   batchNumber: string;
   productId: number;
+  productName?: string | null;
   warehouseId: number;
+  warehouseName?: string | null;
   manufacturingDate?: string | null;
   expirationDate: string;
   initialQuantity: number;
@@ -68,7 +70,9 @@ export interface ProductSerial {
   id: number;
   serialNumber: string;
   productId: number;
+  productName?: string | null;
   warehouseId: number;
+  warehouseName?: string | null;
   status: AssetStatus;
   assignedTo?: string | null;
   assignedAt?: string | null;
