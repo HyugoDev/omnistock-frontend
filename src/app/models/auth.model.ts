@@ -61,3 +61,51 @@ export interface ChangePasswordRequest {
   newPassword: string;
   revokeOtherSessions?: boolean;
 }
+
+// Modelos del Plugin Better Auth Organization
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+  metadata?: string | null;
+  createdAt: string;
+}
+
+export interface Member {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'member' | string;
+  createdAt: string;
+  user?: User;
+}
+
+export interface Invitation {
+  id: string;
+  organizationId: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'canceled';
+  expiresAt: string;
+  createdAt: string;
+  inviterId: string;
+}
+
+export interface FullOrganization extends Organization {
+  members: Member[];
+  invitations: Invitation[];
+}
+
+export interface CreateOrganizationRequest {
+  name: string;
+  slug: string;
+  logo?: string;
+  metadata?: string;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  role: 'admin' | 'member' | string;
+  organizationId?: string;
+}

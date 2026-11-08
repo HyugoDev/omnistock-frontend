@@ -37,6 +37,16 @@
             </svg>
             <span>Inventario & Lotes</span>
           </a>
+
+          <button
+            type="button"
+            (click)="orgService.openOrgModal()"
+            class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800/80 transition text-left">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span>Empresas & Equipos</span>
+          </button>
         </nav>
       </div>
 
@@ -82,62 +92,127 @@
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Header Superior -->
       <header class="bg-slate-900/60 backdrop-blur-md border-b border-slate-800 h-16 flex items-center justify-between px-8 relative z-30">
-        <!-- Selector de Almacén Activo (Fase 3) -->
-        <div class="relative">
-          <button 
-            type="button"
-            (click)="toggleWarehouseDropdown()"
-            class="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white text-xs transition shadow-sm group">
-            <span class="text-sm">🏛️</span>
-            <div class="text-left">
-              <span class="block text-[10px] text-slate-400 font-mono leading-none">Almacén Activo</span>
-              <span class="font-bold text-white group-hover:text-blue-400 transition leading-tight">
-                {{ warehouseService.activeWarehouse()?.name || 'Seleccionar Almacén' }}
-              </span>
-            </div>
-            @if (warehouseService.activeWarehouse()?.code) {
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                {{ warehouseService.activeWarehouse()?.code }}
-              </span>
-            }
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+        <!-- Selectores Multi-Tenant: Organización y Almacén -->
+        <div class="flex items-center space-x-3">
+          <!-- 1. SELECTOR DE ORGANIZACIÓN (Better Auth Plugin) -->
+          <div class="relative">
+            <button 
+              type="button"
+              (click)="toggleOrgDropdown()"
+              class="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white text-xs transition shadow-sm group">
+              <span class="text-sm">🏢</span>
+              <div class="text-left">
+                <span class="block text-[10px] text-slate-400 font-mono leading-none">Empresa</span>
+                <span class="font-bold text-white group-hover:text-blue-400 transition leading-tight truncate max-w-[130px] block">
+                  {{ orgService.activeOrganization()?.name || 'Seleccionar Empresa' }}
+                </span>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-          <!-- Dropdown flotante de Almacenes -->
-          @if (isWarehouseDropdownOpen()) {
-            <div class="absolute left-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 text-white backdrop-blur-xl">
-              <div class="px-3 py-2 border-b border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
-                <span>SELECCIONAR BODEGA</span>
-                <span class="text-[10px] text-blue-400">{{ warehouseService.warehouses().length }} registradas</span>
-              </div>
-              <div class="space-y-1 mt-1 max-h-60 overflow-y-auto">
-                @for (wh of warehouseService.warehouses(); track wh.id) {
-                  <button
-                    type="button"
-                    (click)="selectWarehouse(wh)"
-                    [ngClass]="warehouseService.activeWarehouse()?.id === wh.id ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'hover:bg-slate-800 text-slate-300'"
-                    class="w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group">
-                    <div class="overflow-hidden">
-                      <div class="flex items-center space-x-2">
-                        <span class="font-bold text-xs truncate">{{ wh.name }}</span>
-                        @if (wh.isTransit) {
-                          <span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            Tránsito
-                          </span>
-                        }
+            <!-- Dropdown Organizaciones -->
+            @if (isOrgDropdownOpen()) {
+              <div class="absolute left-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 text-white backdrop-blur-xl">
+                <div class="px-3 py-2 border-b border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                  <span>EMPRESAS ASOCIADAS</span>
+                  <span class="text-[10px] text-blue-400">{{ orgService.organizations().length }} activas</span>
+                </div>
+                <div class="space-y-1 mt-1 max-h-56 overflow-y-auto">
+                  @for (org of orgService.organizations(); track org.id) {
+                    <button
+                      type="button"
+                      (click)="orgService.setActiveOrganization(org.id).subscribe(); isOrgDropdownOpen.set(false)"
+                      [ngClass]="orgService.activeOrganization()?.id === org.id ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'hover:bg-slate-800 text-slate-300'"
+                      class="w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group">
+                      <div class="overflow-hidden">
+                        <span class="font-bold text-xs truncate block">{{ org.name }}</span>
+                        <span class="text-[10px] font-mono text-slate-500 block truncate">{{ org.slug }}</span>
                       </div>
-                      <span class="text-[10px] font-mono text-slate-500 block truncate">{{ wh.code }} · {{ wh.address || 'Sin dirección' }}</span>
+                      @if (orgService.activeOrganization()?.id === org.id) {
+                        <span class="text-blue-400 text-sm">✓</span>
+                      }
+                    </button>
+                  } @empty {
+                    <div class="p-3 text-center text-xs text-slate-500">
+                      Sin organizaciones aún.
                     </div>
-                    @if (warehouseService.activeWarehouse()?.id === wh.id) {
-                      <span class="text-blue-400 text-sm">✓</span>
-                    }
+                  }
+                </div>
+                <div class="pt-2 border-t border-slate-800 mt-1">
+                  <button 
+                    type="button"
+                    (click)="orgService.openOrgModal(); isOrgDropdownOpen.set(false)"
+                    class="w-full py-1.5 px-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-semibold rounded-xl transition flex items-center justify-center space-x-1.5">
+                    <span>+</span>
+                    <span>Gestionar Empresas & Equipos</span>
                   </button>
-                }
+                </div>
               </div>
-            </div>
-          }
+            }
+          </div>
+
+          <!-- Divisor -->
+          <span class="text-slate-700 text-sm">/</span>
+
+          <!-- 2. SELECTOR DE ALMACÉN ACTIVO (Fase 3) -->
+          <div class="relative">
+            <button 
+              type="button"
+              (click)="toggleWarehouseDropdown()"
+              class="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white text-xs transition shadow-sm group">
+              <span class="text-sm">🏛️</span>
+              <div class="text-left">
+                <span class="block text-[10px] text-slate-400 font-mono leading-none">Bodega</span>
+                <span class="font-bold text-white group-hover:text-blue-400 transition leading-tight truncate max-w-[130px] block">
+                  {{ warehouseService.activeWarehouse()?.name || 'Seleccionar Bodega' }}
+                </span>
+              </div>
+              @if (warehouseService.activeWarehouse()?.code) {
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  {{ warehouseService.activeWarehouse()?.code }}
+                </span>
+              }
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Dropdown flotante de Almacenes -->
+            @if (isWarehouseDropdownOpen()) {
+              <div class="absolute left-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 text-white backdrop-blur-xl">
+                <div class="px-3 py-2 border-b border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                  <span>SELECCIONAR BODEGA</span>
+                  <span class="text-[10px] text-blue-400">{{ warehouseService.warehouses().length }} registradas</span>
+                </div>
+                <div class="space-y-1 mt-1 max-h-60 overflow-y-auto">
+                  @for (wh of warehouseService.warehouses(); track wh.id) {
+                    <button
+                      type="button"
+                      (click)="selectWarehouse(wh)"
+                      [ngClass]="warehouseService.activeWarehouse()?.id === wh.id ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'hover:bg-slate-800 text-slate-300'"
+                      class="w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group">
+                      <div class="overflow-hidden">
+                        <div class="flex items-center space-x-2">
+                          <span class="font-bold text-xs truncate">{{ wh.name }}</span>
+                          @if (wh.isTransit) {
+                            <span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              Tránsito
+                            </span>
+                          }
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-500 block truncate">{{ wh.code }} · {{ wh.address || 'Sin dirección' }}</span>
+                      </div>
+                      @if (warehouseService.activeWarehouse()?.id === wh.id) {
+                        <span class="text-blue-400 text-sm">✓</span>
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
         </div>
 
         <div class="flex items-center space-x-4">
@@ -161,6 +236,9 @@
 
   <!-- Slide-Over Drawer de Perfil (Sin cambiar de ruta) -->
   <app-user-profile-drawer />
+
+  <!-- Modal de Gestión de Organizaciones & SaaS Multi-Tenant -->
+  <app-organization-modal />
 
 } @else {
   <!-- Vista de Autenticación sin Sidebar (Login / Register) -->
