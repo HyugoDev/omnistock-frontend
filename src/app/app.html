@@ -166,63 +166,81 @@
           <!-- Divisor -->
           <span class="text-slate-700 text-sm">/</span>
 
-          <!-- 2. SELECTOR DE ALMACÉN ACTIVO (Fase 3) -->
-          <div class="relative">
-            <button 
-              type="button"
-              (click)="toggleWarehouseDropdown()"
-              class="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white text-xs transition shadow-sm group">
-              <span class="text-sm">🏛️</span>
+          <!-- 2. SELECTOR DE ALMACÉN ACTIVO (Control RBAC por Sede) -->
+          @if (orgService.isGlobalAdmin()) {
+            <div class="relative">
+              <button 
+                type="button"
+                (click)="toggleWarehouseDropdown()"
+                class="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-white text-xs transition shadow-sm group">
+                <span class="text-sm">🏛️</span>
+                <div class="text-left">
+                  <span class="block text-[10px] text-slate-400 font-mono leading-none">Bodega Activa</span>
+                  <span class="font-bold text-white group-hover:text-blue-400 transition leading-tight truncate max-w-[130px] block">
+                    {{ warehouseService.activeWarehouse()?.name || 'Seleccionar Bodega' }}
+                  </span>
+                </div>
+                @if (warehouseService.activeWarehouse()?.code) {
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    {{ warehouseService.activeWarehouse()?.code }}
+                  </span>
+                }
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              <!-- Dropdown flotante de Almacenes -->
+              @if (isWarehouseDropdownOpen()) {
+                <div class="absolute left-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 text-white backdrop-blur-xl">
+                  <div class="px-3 py-2 border-b border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                    <span>SELECCIONAR BODEGA</span>
+                    <span class="text-[10px] text-blue-400">{{ warehouseService.warehouses().length }} registradas</span>
+                  </div>
+                  <div class="space-y-1 mt-1 max-h-60 overflow-y-auto">
+                    @for (wh of warehouseService.warehouses(); track wh.id) {
+                      <button
+                        type="button"
+                        (click)="selectWarehouse(wh)"
+                        [ngClass]="warehouseService.activeWarehouse()?.id === wh.id ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'hover:bg-slate-800 text-slate-300'"
+                        class="w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group">
+                        <div class="overflow-hidden">
+                          <div class="flex items-center space-x-2">
+                            <span class="font-bold text-xs truncate">{{ wh.name }}</span>
+                            @if (wh.isTransit) {
+                              <span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Tránsito
+                              </span>
+                            }
+                          </div>
+                          <span class="text-[10px] font-mono text-slate-500 block truncate">{{ wh.code }} · {{ wh.address || 'Sin dirección' }}</span>
+                        </div>
+                        @if (warehouseService.activeWarehouse()?.id === wh.id) {
+                          <span class="text-blue-400 text-sm">✓</span>
+                        }
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <!-- Sede Asignada Fija (Operador con acceso restringido) -->
+            <div class="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-amber-500/30 text-white text-xs shadow-sm">
+              <span class="text-xs">🔒</span>
               <div class="text-left">
-                <span class="block text-[10px] text-slate-400 font-mono leading-none">Bodega</span>
-                <span class="font-bold text-white group-hover:text-blue-400 transition leading-tight truncate max-w-[130px] block">
-                  {{ warehouseService.activeWarehouse()?.name || 'Seleccionar Bodega' }}
+                <span class="block text-[9px] text-amber-400 font-mono leading-none font-semibold">Sede Asignada</span>
+                <span class="font-bold text-white leading-tight truncate max-w-[130px] block">
+                  {{ warehouseService.activeWarehouse()?.name || 'Local Asignado' }}
                 </span>
               </div>
               @if (warehouseService.activeWarehouse()?.code) {
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
                   {{ warehouseService.activeWarehouse()?.code }}
                 </span>
               }
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            <!-- Dropdown flotante de Almacenes -->
-            @if (isWarehouseDropdownOpen()) {
-              <div class="absolute left-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 text-white backdrop-blur-xl">
-                <div class="px-3 py-2 border-b border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
-                  <span>SELECCIONAR BODEGA</span>
-                  <span class="text-[10px] text-blue-400">{{ warehouseService.warehouses().length }} registradas</span>
-                </div>
-                <div class="space-y-1 mt-1 max-h-60 overflow-y-auto">
-                  @for (wh of warehouseService.warehouses(); track wh.id) {
-                    <button
-                      type="button"
-                      (click)="selectWarehouse(wh)"
-                      [ngClass]="warehouseService.activeWarehouse()?.id === wh.id ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30' : 'hover:bg-slate-800 text-slate-300'"
-                      class="w-full text-left p-2.5 rounded-xl transition flex items-center justify-between group">
-                      <div class="overflow-hidden">
-                        <div class="flex items-center space-x-2">
-                          <span class="font-bold text-xs truncate">{{ wh.name }}</span>
-                          @if (wh.isTransit) {
-                            <span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              Tránsito
-                            </span>
-                          }
-                        </div>
-                        <span class="text-[10px] font-mono text-slate-500 block truncate">{{ wh.code }} · {{ wh.address || 'Sin dirección' }}</span>
-                      </div>
-                      @if (warehouseService.activeWarehouse()?.id === wh.id) {
-                        <span class="text-blue-400 text-sm">✓</span>
-                      }
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          </div>
+            </div>
+          }
         </div>
 
         <div class="flex items-center space-x-4">

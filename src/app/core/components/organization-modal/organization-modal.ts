@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule, NgClass } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { OrganizationService } from '../../../services/organization.service';
+import { WarehouseService } from '../../../services/warehouse.service';
 import { Organization, Member, Invitation } from '../../../models/auth.model';
 
 @Component({
@@ -12,6 +13,7 @@ import { Organization, Member, Invitation } from '../../../models/auth.model';
 })
 export class OrganizationModal {
   protected readonly orgService = inject(OrganizationService);
+  protected readonly warehouseService = inject(WarehouseService);
   private readonly fb = inject(FormBuilder);
 
   public activeTab = signal<'manage' | 'members'>('manage');
@@ -27,10 +29,11 @@ export class OrganizationModal {
     logo: ['']
   });
 
-  // Formulario de Invitación de Miembro
+  // Formulario de Invitación de Miembro con Sede Asignada
   public inviteForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    role: ['member', [Validators.required]]
+    role: ['member', [Validators.required]],
+    assignedWarehouseId: [null]
   });
 
   // Autogenerar slug en base al nombre
@@ -78,19 +81,27 @@ export class OrganizationModal {
       return;
     }
 
+    const val = this.inviteForm.value;
+
+    // Validación de regla de negocio: Si es miembro operativo, debe tener una sede asignada
+    if (val.role === 'member' && !val.assignedWarehouseId) {
+      this.errorMessage.set('Debe seleccionar un Local / Bodega para colaboradores con rol Miembro.');
+      return;
+    }
+
     this.isInviting.set(true);
     this.errorMessage.set(null);
     this.successMessage.set(null);
 
-    const val = this.inviteForm.value;
     this.orgService.inviteMember({
       email: val.email.trim(),
-      role: val.role
+      role: val.role,
+      assignedWarehouseId: val.assignedWarehouseId ? val.assignedWarehouseId.toString() : null
     }).subscribe({
       next: () => {
         this.isInviting.set(false);
         this.successMessage.set(`Invitación enviada exitosamente a ${val.email}`);
-        this.inviteForm.reset({ role: 'member' });
+        this.inviteForm.reset({ role: 'member', assignedWarehouseId: null });
       },
       error: (err) => {
         this.isInviting.set(false);
@@ -113,5 +124,11 @@ export class OrganizationModal {
         error: (err) => alert(err.error?.message || 'Error al remover miembro')
       });
     }
+  }
+
+  getWarehouseName(warehouseId?: string | number | null): string {
+    if (!warehouseId) return 'Acceso Global';
+    const found = this.warehouseService.warehouses().find(w => w.id === Number(warehouseId));
+    return found ? `${found.name} (${found.code})` : `Local #${warehouseId}`;
   }
 }

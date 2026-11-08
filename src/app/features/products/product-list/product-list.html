@@ -8,8 +8,22 @@
           Multi-Naturaleza & FEFO
         </span>
       </div>
-      <p class="text-xs text-slate-400 mt-1">
-        Gestión centralizada para Retail, Lotes Farmacéuticos/Perecederos y Activos Serializados en <strong class="text-white">{{ warehouseService.activeWarehouse()?.name || 'Bodega Central' }}</strong>.
+      <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+        <span>Existencias físicas y lotes filtrados por sede:</span>
+        @if (warehouseService.activeWarehouse(); as wh) {
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-300 font-semibold font-mono text-[11px]">
+            📍 {{ wh.name }} ({{ wh.code }})
+          </span>
+        } @else {
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 text-slate-400 font-mono text-[11px]">
+            🌐 Todas las Bodegas
+          </span>
+        }
+        @if (!orgService.isGlobalAdmin()) {
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono text-[10px]">
+            🔒 Vista Operativa Asignada
+          </span>
+        }
       </p>
     </div>
 
@@ -24,7 +38,7 @@
 
       <!-- Botón Sincronizar -->
       <button 
-        (click)="productService.getAllProducts().subscribe()"
+        (click)="loadProducts()"
         [disabled]="productService.isLoading()"
         class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl border border-slate-700/80 transition flex items-center space-x-1.5">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" [ngClass]="{'animate-spin': productService.isLoading()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">

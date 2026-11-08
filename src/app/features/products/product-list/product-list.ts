@@ -1,9 +1,10 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { CommonModule, CurrencyPipe, NgClass } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ProductService } from '../../../services/product.service';
 import { CategoryService } from '../../../services/category.service';
 import { WarehouseService } from '../../../services/warehouse.service';
+import { OrganizationService } from '../../../services/organization.service';
 import { BatchService, FefoAllocation } from '../../../services/batch.service';
 import { SerialService } from '../../../services/serial.service';
 import { ProductRequest, ProductResponse, ProductType, UnitOfMeasure, ProductSerial, AssetStatus } from '../../../models/product.model';
@@ -20,9 +21,18 @@ export class ProductList implements OnInit {
   protected readonly productService = inject(ProductService);
   protected readonly categoryService = inject(CategoryService);
   protected readonly warehouseService = inject(WarehouseService);
+  protected readonly orgService = inject(OrganizationService);
   protected readonly batchService = inject(BatchService);
   protected readonly serialService = inject(SerialService);
   private readonly fb = inject(FormBuilder);
+
+  constructor() {
+    // Reaccionar a cambios en la sede activa para cargar el stock local correspondiente
+    effect(() => {
+      const activeWh = this.warehouseService.activeWarehouse();
+      this.productService.getAllProducts(activeWh?.id).subscribe();
+    });
+  }
 
   // Señales de control del Modal y Errores
   public isModalOpen = signal<boolean>(false);
@@ -105,8 +115,12 @@ export class ProductList implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.productService.getAllProducts().subscribe();
     this.categoryService.getAllCategories().subscribe();
+  }
+
+  loadProducts(): void {
+    const activeWhId = this.warehouseService.activeWarehouse()?.id;
+    this.productService.getAllProducts(activeWhId).subscribe();
   }
 
   // Filtrado por Pestaña
@@ -245,7 +259,7 @@ export class ProductList implements OnInit {
       next: (res) => {
         alert(res.message || 'Transferencia realizada con éxito');
         this.closeTransferModal();
-        this.productService.getAllProducts().subscribe();
+        this.loadProducts();
       },
       error: (err) => {
         alert(err.error?.message || 'Error al transferir existencias');
@@ -293,7 +307,7 @@ export class ProductList implements OnInit {
     }).subscribe({
       next: () => {
         this.newBatchForm.reset({ initialQuantity: 10 });
-        this.productService.getAllProducts().subscribe();
+        this.loadProducts();
       },
       error: (err) => alert(err.error?.message || 'Error al registrar lote')
     });
@@ -324,7 +338,7 @@ export class ProductList implements OnInit {
         this.isDispatchingFefo.set(false);
         this.fefoDispatchSuccess.set(`¡Despacho FEFO exitoso! Se asignaron ${res.dispatchedQuantity} unidades.`);
         this.fefoAllocations.set(res.allocations);
-        this.productService.getAllProducts().subscribe();
+        this.loadProducts();
       },
       error: (err) => {
         this.isDispatchingFefo.set(false);

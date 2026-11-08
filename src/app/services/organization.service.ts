@@ -1,7 +1,8 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, catchError, of } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { AuthService } from './auth.service';
 import {
   Organization,
   Member,
@@ -16,6 +17,7 @@ import {
 })
 export class OrganizationService {
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly orgUrl = `${environment.authUrl}/organization`;
 
   public organizations = signal<Organization[]>([]);
@@ -24,6 +26,27 @@ export class OrganizationService {
   public activeInvitations = signal<Invitation[]>([]);
   public isLoading = signal<boolean>(false);
   public isOrgModalOpen = signal<boolean>(false);
+
+  // Computados para RBAC y control de acceso por sede
+  public currentMember = computed(() => {
+    const currentUserId = this.authService.currentUser()?.id;
+    if (!currentUserId) return null;
+    return this.activeMembers().find(m => m.userId === currentUserId) || null;
+  });
+
+  public currentRole = computed(() => {
+    return this.currentMember()?.role || this.authService.currentUser()?.role || 'member';
+  });
+
+  public isGlobalAdmin = computed(() => {
+    const role = this.currentRole().toLowerCase();
+    return role === 'owner' || role === 'admin';
+  });
+
+  public assignedWarehouseId = computed(() => {
+    const whId = this.currentMember()?.assignedWarehouseId;
+    return whId ? Number(whId) : null;
+  });
 
   openOrgModal(): void {
     this.isOrgModalOpen.set(true);

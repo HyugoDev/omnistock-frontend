@@ -77,6 +77,7 @@ export interface Member {
   organizationId: string;
   userId: string;
   role: 'owner' | 'admin' | 'member' | string;
+  assignedWarehouseId?: string | number | null;
   createdAt: string;
   user?: User;
 }
@@ -86,6 +87,7 @@ export interface Invitation {
   organizationId: string;
   email: string;
   role: string;
+  assignedWarehouseId?: string | number | null;
   status: 'pending' | 'accepted' | 'rejected' | 'canceled';
   expiresAt: string;
   createdAt: string;
@@ -107,5 +109,6 @@ export interface CreateOrganizationRequest {
 export interface InviteMemberRequest {
   email: string;
   role: 'admin' | 'member' | string;
+  assignedWarehouseId?: string | number | null;
   organizationId?: string;
 }

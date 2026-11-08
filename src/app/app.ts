@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from './services/auth.service';
@@ -30,6 +30,22 @@ export class App implements OnInit {
   public isWarehouseDropdownOpen = signal<boolean>(false);
   public isOrgDropdownOpen = signal<boolean>(false);
 
+  constructor() {
+    // Sincronizar automáticamente la sede activa para miembros restringidos
+    effect(() => {
+      const isGlobal = this.orgService.isGlobalAdmin();
+      const assignedId = this.orgService.assignedWarehouseId();
+      const warehouses = this.warehouseService.warehouses();
+
+      if (!isGlobal && assignedId && warehouses.length > 0) {
+        const assignedWh = warehouses.find(w => w.id === assignedId);
+        if (assignedWh && this.warehouseService.activeWarehouse()?.id !== assignedWh.id) {
+          this.warehouseService.selectWarehouse(assignedWh);
+        }
+      }
+    });
+  }
+
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
       this.orgService.loadOrganizations().subscribe();
@@ -42,11 +58,13 @@ export class App implements OnInit {
   }
 
   toggleWarehouseDropdown(): void {
+    if (!this.orgService.isGlobalAdmin()) return;
     this.isWarehouseDropdownOpen.update(v => !v);
     this.isOrgDropdownOpen.set(false);
   }
 
   selectWarehouse(warehouse: Warehouse): void {
+    if (!this.orgService.isGlobalAdmin()) return;
     this.warehouseService.selectWarehouse(warehouse);
     this.isWarehouseDropdownOpen.set(false);
   }

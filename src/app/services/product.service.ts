@@ -65,9 +65,10 @@ export class ProductService {
         });
     });
 
-    getAllProducts(): Observable<ProductResponse[]> {
+    getAllProducts(warehouseId?: number): Observable<ProductResponse[]> {
         this.isLoading.set(true);
-        return this.http.get<ProductResponse[]>(this.apiUrl).pipe(
+        const url = warehouseId ? `${this.apiUrl}?warehouseId=${warehouseId}` : this.apiUrl;
+        return this.http.get<ProductResponse[]>(url).pipe(
             tap({
                 next: (data) => {
                     this.products.set(data);

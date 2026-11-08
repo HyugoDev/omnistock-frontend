@@ -151,6 +151,7 @@
                     <tr>
                       <th class="p-2.5">Usuario / Email</th>
                       <th class="p-2.5">Rol en Empresa</th>
+                      <th class="p-2.5">Sede / Local Asignado</th>
                       <th class="p-2.5 text-center">Acción</th>
                     </tr>
                   </thead>
@@ -167,6 +168,15 @@
                             {{ m.role | uppercase }}
                           </span>
                         </td>
+                        <td class="p-2.5">
+                          <span class="text-slate-300 font-mono text-[11px] flex items-center gap-1">
+                            @if (m.assignedWarehouseId) {
+                              <span class="text-emerald-400">📍</span> {{ getWarehouseName(m.assignedWarehouseId) }}
+                            } @else {
+                              <span class="text-slate-500">🌐 Acceso Global</span>
+                            }
+                          </span>
+                        </td>
                         <td class="p-2.5 text-center">
                           @if (m.role !== 'owner') {
                             <button 
@@ -179,7 +189,7 @@
                       </tr>
                     } @empty {
                       <tr>
-                        <td colspan="3" class="p-4 text-center text-slate-500">No hay miembros registrados aparte del creador.</td>
+                        <td colspan="4" class="p-4 text-center text-slate-500">No hay miembros registrados aparte del creador.</td>
                       </tr>
                     }
                   </tbody>
@@ -190,30 +200,55 @@
             <!-- Formulario Invitar Nuevo Miembro -->
             <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
               <h3 class="text-xs font-bold text-white uppercase font-mono">Invitar Colaborador por Email</h3>
-              <form [formGroup]="inviteForm" (ngSubmit)="submitInviteMember()" class="grid grid-cols-3 gap-3 items-end">
-                <div class="col-span-2">
-                  <label class="block text-[11px] text-slate-400 mb-1">Correo Electrónico *</label>
-                  <input 
-                    type="email" 
-                    formControlName="email" 
-                    placeholder="encargado@bodega.com"
-                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              <form [formGroup]="inviteForm" (ngSubmit)="submitInviteMember()" class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Correo Electrónico *</label>
+                    <input 
+                      type="email" 
+                      formControlName="email" 
+                      placeholder="encargado@bodega.com"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">Rol *</label>
+                    <select 
+                      formControlName="role"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <option value="member">Miembro / Operador (Sede Específica)</option>
+                      <option value="admin">Administrador (Acceso Global)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-[11px] text-slate-400 mb-1">
+                      Sede / Local Asignado
+                      @if (inviteForm.get('role')?.value === 'member') {
+                        <span class="text-rose-400">*</span>
+                      }
+                    </label>
+                    <select 
+                      formControlName="assignedWarehouseId"
+                      class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <option [ngValue]="null">
+                        {{ inviteForm.get('role')?.value === 'admin' ? '🌐 Acceso Global (Todas)' : '-- Seleccionar Sede Obligatoria --' }}
+                      </option>
+                      @for (w of warehouseService.warehouses(); track w.id) {
+                        <option [ngValue]="w.id">{{ w.name }} ({{ w.code }})</option>
+                      }
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label class="block text-[11px] text-slate-400 mb-1">Rol *</label>
-                  <select 
-                    formControlName="role"
-                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <option value="member">Miembro / Operador</option>
-                    <option value="admin">Administrador</option>
-                  </select>
-                </div>
-                <div class="col-span-3 flex justify-end">
+
+                <div class="flex justify-end">
                   <button 
                     type="submit" 
                     [disabled]="isInviting() || inviteForm.invalid"
-                    class="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
-                    {{ isInviting() ? 'Enviando...' : '✉️ Enviar Invitación' }}
+                    class="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center space-x-1.5">
+                    @if (isInviting()) {
+                      <span>Enviando...</span>
+                    } @else {
+                      <span>✉️ Enviar Invitación</span>
+                    }
                   </button>
                 </div>
               </form>
@@ -226,13 +261,20 @@
                 <div class="space-y-1.5">
                   @for (inv of orgService.activeInvitations(); track inv.id) {
                     <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                      <div>
+                      <div class="flex items-center space-x-2">
                         <span class="font-mono text-white">{{ inv.email }}</span>
-                        <span class="ml-2 px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-slate-300 font-mono">{{ inv.role }}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-mono">{{ inv.role | uppercase }}</span>
+                        @if (inv.assignedWarehouseId) {
+                          <span class="text-[10px] text-blue-400 font-mono bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
+                            📍 {{ getWarehouseName(inv.assignedWarehouseId) }}
+                          </span>
+                        } @else {
+                          <span class="text-[10px] text-slate-500 font-mono">🌐 Acceso Global</span>
+                        }
                       </div>
                       <button 
                         (click)="cancelInvite(inv.id)"
-                        class="text-rose-400 hover:text-rose-300 text-[11px]">
+                        class="text-rose-400 hover:text-rose-300 text-[11px] px-2 py-1 rounded transition">
                         Cancelar
                       </button>
                     </div>
