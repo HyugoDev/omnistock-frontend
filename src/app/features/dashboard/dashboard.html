@@ -1,91 +1,158 @@
 <div class="space-y-6">
-  <!-- Título y Bienvenida -->
-  <div>
-    <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Panel de Control (Dashboard)</h1>
-    <p class="text-sm text-gray-500 mt-1">Resumen general del inventario y salud del negocio en tiempo real.</p>
+  <!-- ENCABEZADO DASHBOARD -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-black text-white tracking-tight">Centro de Operaciones WMS</h1>
+      <p class="text-xs text-slate-400 mt-1">Supervisión integral de inventario multialmacén, lotes y valuación de stock en tiempo real.</p>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <a 
+        routerLink="/products"
+        class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center space-x-2">
+        <span>📦 Gestionar Catálogo</span>
+      </a>
+    </div>
   </div>
 
-  <!-- TARJETAS DE MÉTRICAS (KPIs) -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- TARJETAS DE MÉTRICAS GLOBALES (KPIs) -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
     <!-- KPI 1: Total Productos -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+    <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex items-center justify-between backdrop-blur-md">
       <div>
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Productos Registrados</p>
-        <p class="text-3xl font-bold text-gray-900 mt-2">{{ productService.totalProducts() }}</p>
-        <span class="text-xs text-green-600 font-medium mt-1 inline-block">● Catálogo sincronizado</span>
+        <p class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Artículos Activos</p>
+        <p class="text-3xl font-extrabold text-white mt-1">{{ productService.totalProducts() }}</p>
+        <span class="text-[11px] text-emerald-400 font-medium mt-1 inline-flex items-center space-x-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>Sincronizado con Core Backend</span>
+        </span>
       </div>
-      <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center text-2xl">
         📦
       </div>
     </div>
 
     <!-- KPI 2: Valor del Inventario -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+    <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex items-center justify-between backdrop-blur-md">
       <div>
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Valor del Inventario</p>
-        <p class="text-3xl font-bold text-gray-900 mt-2">
+        <p class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Valuación del Stock</p>
+        <p class="text-3xl font-extrabold text-white mt-1">
           {{ productService.totalInventoryValue() | currency:'USD' }}
         </p>
-        <span class="text-xs text-gray-400 mt-1 inline-block">Valor total estimado en venta</span>
+        <span class="text-[11px] text-slate-400 mt-1 inline-block">Valor de venta acumulado</span>
       </div>
-      <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl">
         💰
       </div>
     </div>
 
     <!-- KPI 3: Alertas de Stock Bajo -->
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+    <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl flex items-center justify-between backdrop-blur-md">
       <div>
-        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Alertas de Stock</p>
-        <p class="text-3xl font-bold mt-2" [ngClass]="productService.lowStockCount() > 0 ? 'text-red-600' : 'text-gray-900'">
+        <p class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Alertas de Reposición</p>
+        <p class="text-3xl font-extrabold mt-1" [ngClass]="productService.lowStockCount() > 0 ? 'text-rose-400' : 'text-white'">
           {{ productService.lowStockCount() }}
         </p>
         @if (productService.lowStockCount() > 0) {
-          <span class="text-xs text-red-500 font-semibold mt-1 inline-block">⚠️ Requieren reabastecimiento</span>
+          <span class="text-[11px] text-rose-400 font-semibold mt-1 inline-flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
+            <span>Requieren reabastecimiento urgente</span>
+          </span>
         } @else {
-          <span class="text-xs text-green-600 font-medium mt-1 inline-block">✓ Niveles óptimos</span>
+          <span class="text-[11px] text-emerald-400 font-medium mt-1 inline-block">✓ Existencias estables</span>
         }
       </div>
-      <div class="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center text-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center text-2xl">
         🚨
       </div>
     </div>
   </div>
 
+  <!-- DISTRIBUCIÓN POR NATURALEZA UNIVERSAL -->
+  <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 shadow-xl backdrop-blur-md">
+    <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono mb-4">
+      Distribución de Inventario por Naturaleza
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl flex items-center space-x-4">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center text-xl">
+          🏷️
+        </div>
+        <div>
+          <p class="text-xs text-slate-400 font-medium">Retail & Estándar</p>
+          <p class="text-xl font-bold text-white">{{ productService.standardCount() }} <span class="text-xs font-normal text-slate-400">artículos</span></p>
+          <span class="text-[10px] text-slate-500">Consumo y venta directa</span>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl flex items-center space-x-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+          💊
+        </div>
+        <div>
+          <p class="text-xs text-slate-400 font-medium">Lotes & Caducidad (FEFO)</p>
+          <p class="text-xl font-bold text-amber-400">{{ productService.batchCount() }} <span class="text-xs font-normal text-slate-400">artículos</span></p>
+          <span class="text-[10px] text-slate-500">Farma, perecederos y alimentos</span>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/60 border border-slate-800 p-4 rounded-xl flex items-center space-x-4">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-xl">
+          ⚙️
+        </div>
+        <div>
+          <p class="text-xs text-slate-400 font-medium">Activos Serializados</p>
+          <p class="text-xl font-bold text-purple-400">{{ productService.serializedCount() }} <span class="text-xs font-normal text-slate-400">artículos</span></p>
+          <span class="text-[10px] text-slate-500">Maquinaria, IT y trazabilidad individual</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SECCIÓN DE PRODUCTOS CRÍTICOS (STOCK BAJO) -->
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+  <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl shadow-xl p-6 backdrop-blur-md">
     <div class="flex justify-between items-center mb-4">
       <div>
-        <h2 class="text-lg font-bold text-gray-800">⚠️ Productos en Nivel Crítico</h2>
-        <p class="text-xs text-gray-400">Productos cuyo stock actual es menor o igual al mínimo permitido</p>
+        <h2 class="text-base font-bold text-white flex items-center space-x-2">
+          <span>⚠️ Artículos en Nivel Crítico</span>
+          @if (productService.lowStockCount() > 0) {
+            <span class="bg-rose-500/20 text-rose-400 text-xs px-2 py-0.5 rounded-full border border-rose-500/30">
+              {{ productService.lowStockCount() }}
+            </span>
+          }
+        </h2>
+        <p class="text-xs text-slate-400 mt-0.5">Artículos con stock disponible menor o igual al umbral mínimo establecido</p>
       </div>
-      <a routerLink="/products" class="text-sm font-semibold text-blue-600 hover:text-blue-800 transition">
-        Ver catálogo completo &rarr;
+      <a routerLink="/products" class="text-xs font-semibold text-blue-400 hover:text-blue-300 transition flex items-center space-x-1">
+        <span>Ir al catálogo</span>
+        <span>&rarr;</span>
       </a>
     </div>
 
     @if (productService.lowStockCount() > 0) {
-      <div class="divide-y divide-gray-100">
+      <div class="divide-y divide-slate-800">
         @for (prod of productService.lowStockProducts(); track prod.id) {
-          <div class="py-3.5 flex items-center justify-between hover:bg-gray-50 px-2 rounded-lg transition">
+          <div class="py-3 flex items-center justify-between hover:bg-slate-800/40 px-3 rounded-xl transition">
             <div class="flex items-center space-x-3">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse flex-shrink-0"></span>
               <div>
-                <p class="font-semibold text-gray-800 text-sm">{{ prod.name }}</p>
-                <p class="text-xs text-gray-400 font-mono">{{ prod.barcode }} · {{ prod.categoryName }}</p>
+                <p class="font-bold text-white text-xs">{{ prod.name }}</p>
+                <p class="text-[11px] text-slate-400 font-mono">{{ prod.barcode }} · {{ prod.categoryName }}</p>
               </div>
             </div>
             <div class="text-right">
-              <span class="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-full">
-                Quedan: {{ prod.currentStock }} (Mín: {{ prod.minStock }})
+              <span class="text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full font-mono">
+                Disponibles: {{ prod.currentStock }} (Mín: {{ prod.minStock }})
               </span>
             </div>
           </div>
         }
       </div>
     } @else {
-      <div class="text-center py-8 text-gray-400 text-sm">
-        🎉 ¡Excelente! No hay productos con stock crítico en este momento.
+      <div class="text-center py-10 text-slate-400 text-xs">
+        <p class="text-2xl mb-1">🎉</p>
+        <p class="font-semibold text-slate-200">¡Niveles óptimos garantizados!</p>
+        <p class="text-slate-500 mt-1">Todos los artículos cumplen con el umbral mínimo de seguridad en almacén.</p>
       </div>
     }
   </div>

@@ -1,214 +1,471 @@
 <div class="space-y-6">
-  <!-- Encabezado con Botón de Nuevo Producto -->
-  <div class="flex justify-between items-center">
+  <!-- ENCABEZADO PRINCIPAL -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-bold text-gray-800">📦 Gestión de Inventario</h1>
-      <p class="text-sm text-gray-500">Catálogo de productos sincronizado con Spring Boot</p>
+      <div class="flex items-center space-x-3">
+        <h1 class="text-2xl font-black text-white tracking-tight">📦 Inventario Universal</h1>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          Multi-Naturaleza & FEFO
+        </span>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">
+        Gestión centralizada para Retail, Lotes Farmacéuticos/Perecederos y Activos Serializados.
+      </p>
     </div>
-    <div class="flex space-x-3">
+
+    <div class="flex items-center space-x-3">
       <button 
         (click)="productService.getAllProducts().subscribe()"
-        class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-xl transition">
-        🔄 Refrescar
+        [disabled]="productService.isLoading()"
+        class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-700/80 transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" [ngClass]="{'animate-spin': productService.isLoading()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>Sincronizar</span>
       </button>
+
       <button 
         (click)="openModal()"
-        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl shadow-sm transition flex items-center space-x-2">
-        <span>+</span>
+        class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
         <span>Nuevo Producto</span>
       </button>
     </div>
   </div>
 
-  <!-- Estado de Carga -->
+  <!-- RESUMEN DE MÉTRICAS RÁPIDAS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div>
+        <p class="text-[11px] text-slate-400 font-medium uppercase">Total Artículos</p>
+        <p class="text-xl font-bold text-white mt-0.5">{{ productService.totalProducts() }}</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm">
+        📦
+      </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div>
+        <p class="text-[11px] text-slate-400 font-medium uppercase">Retail / Estándar</p>
+        <p class="text-xl font-bold text-blue-400 mt-0.5">{{ productService.standardCount() }}</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm">
+        🏷️
+      </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div>
+        <p class="text-[11px] text-slate-400 font-medium uppercase">Lotes FEFO</p>
+        <p class="text-xl font-bold text-amber-400 mt-0.5">{{ productService.batchCount() }}</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-sm">
+        💊
+      </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div>
+        <p class="text-[11px] text-slate-400 font-medium uppercase">Activos Serializados</p>
+        <p class="text-xl font-bold text-purple-400 mt-0.5">{{ productService.serializedCount() }}</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center font-bold text-sm">
+        ⚙️
+      </div>
+    </div>
+  </div>
+
+  <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+  <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg">
+    <!-- Pestañas de Tipo de Producto -->
+    <div class="flex items-center space-x-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+      <button 
+        (click)="setTypeFilter('ALL')"
+        [ngClass]="productService.selectedType() === 'ALL' 
+          ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30' 
+          : 'text-slate-400 hover:text-white hover:bg-slate-800/80'"
+        class="px-3.5 py-1.5 rounded-xl text-xs transition flex items-center space-x-1.5 whitespace-nowrap">
+        <span>Todos</span>
+        <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{{ productService.totalProducts() }}</span>
+      </button>
+
+      <button 
+        (click)="setTypeFilter('STANDARD')"
+        [ngClass]="productService.selectedType() === 'STANDARD' 
+          ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30' 
+          : 'text-slate-400 hover:text-white hover:bg-slate-800/80'"
+        class="px-3.5 py-1.5 rounded-xl text-xs transition flex items-center space-x-1.5 whitespace-nowrap">
+        <span>📦 Estándar</span>
+        <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{{ productService.standardCount() }}</span>
+      </button>
+
+      <button 
+        (click)="setTypeFilter('BATCH_EXPIRABLE')"
+        [ngClass]="productService.selectedType() === 'BATCH_EXPIRABLE' 
+          ? 'bg-amber-600 text-white font-semibold shadow-md shadow-amber-600/30' 
+          : 'text-slate-400 hover:text-white hover:bg-slate-800/80'"
+        class="px-3.5 py-1.5 rounded-xl text-xs transition flex items-center space-x-1.5 whitespace-nowrap">
+        <span>💊 Lotes FEFO</span>
+        <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{{ productService.batchCount() }}</span>
+      </button>
+
+      <button 
+        (click)="setTypeFilter('SERIALIZED_ASSET')"
+        [ngClass]="productService.selectedType() === 'SERIALIZED_ASSET' 
+          ? 'bg-purple-600 text-white font-semibold shadow-md shadow-purple-600/30' 
+          : 'text-slate-400 hover:text-white hover:bg-slate-800/80'"
+        class="px-3.5 py-1.5 rounded-xl text-xs transition flex items-center space-x-1.5 whitespace-nowrap">
+        <span>⚙️ Serializados</span>
+        <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{{ productService.serializedCount() }}</span>
+      </button>
+    </div>
+
+    <!-- Buscador en tiempo real -->
+    <div class="relative w-full md:w-80">
+      <input 
+        type="text"
+        [value]="productService.searchQuery()"
+        (input)="onSearchInput($event)"
+        placeholder="Buscar por nombre, código o SKU..."
+        class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-9 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+      
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+
+      @if (productService.searchQuery()) {
+        <button 
+          (click)="clearSearch()"
+          class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white text-xs">
+          ✕
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ESTADO DE CARGA -->
   @if (productService.isLoading()) {
-    <div class="text-center py-12">
+    <div class="text-center py-16 bg-slate-900/40 border border-slate-800 rounded-2xl">
       <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-      <p class="text-gray-500 mt-2">Cargando catálogo...</p>
+      <p class="text-slate-400 text-xs mt-3">Sincronizando inventario con el Core Backend...</p>
     </div>
   } @else {
-    <!-- Tabla de Productos -->
-    <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-      <table class="w-full text-left border-collapse">
-        <thead>
-          <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b">
-            <th class="p-4 font-semibold">Código</th>
-            <th class="p-4 font-semibold">Producto</th>
-            <th class="p-4 font-semibold">Categoría</th>
-            <th class="p-4 font-semibold text-right">Precio Venta</th>
-            <th class="p-4 font-semibold text-center">Stock</th>
-            <th class="p-4 font-semibold text-center">Estado</th>
-            <th class="p-4 font-semibold text-center">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100 text-sm">
-          @for (prod of productService.products(); track prod.id) {
-            <tr class="hover:bg-gray-50/70 transition">
-              <td class="p-4 font-mono text-xs text-gray-500">{{ prod.barcode }}</td>
-              <td class="p-4">
-                <span class="font-semibold text-gray-900 block">{{ prod.name }}</span>
-                <span class="text-xs text-gray-400">{{ prod.description || 'Sin descripción' }}</span>
-              </td>
-              <td class="p-4">
-                <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs font-medium">
-                  {{ prod.categoryName }}
-                </span>
-              </td>
-              <td class="p-4 text-right font-bold text-gray-900">
-                {{ prod.salePrice | currency:'USD' }}
-              </td>
-              <td class="p-4 text-center font-bold" [ngClass]="prod.requiresRestock ? 'text-red-600' : 'text-gray-700'">
-                {{ prod.currentStock }}
-              </td>
-              <td class="p-4 text-center">
-                @if (prod.requiresRestock) {
-                  <span class="bg-red-50 text-red-600 px-2.5 py-1 rounded-full text-xs font-semibold">
-                    ⚠️ Stock Bajo
-                  </span>
-                } @else {
-                  <span class="bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold">
-                    ✓ Óptimo
-                  </span>
-                }
-              </td>
-              <td class="p-4 text-center">
-                <button 
-                  (click)="onDeleteProduct(prod.id, prod.name)"
-                  class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition">
-                  Desactivar
-                </button>
-              </td>
+    <!-- TABLA DE PRODUCTOS UNIVERSALES -->
+    <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden backdrop-blur-md">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-950/60 text-slate-400 text-[11px] font-mono uppercase tracking-wider border-b border-slate-800">
+              <th class="p-4">Identificador</th>
+              <th class="p-4">Artículo & Naturaleza</th>
+              <th class="p-4">Categoría</th>
+              <th class="p-4 text-right">Precio Venta</th>
+              <th class="p-4 text-center">Stock Actual</th>
+              <th class="p-4 text-center">Estado</th>
+              <th class="p-4 text-center">Acciones</th>
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="7" class="p-8 text-center text-gray-400">
-                No hay productos en el inventario. Haz clic en <strong>+ Nuevo Producto</strong> para registrar uno.
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 text-xs">
+            @for (prod of productService.filteredProducts(); track prod.id) {
+              <tr class="hover:bg-slate-800/40 transition">
+                <!-- Identificador (Barcode & SKU) -->
+                <td class="p-4">
+                  <div class="font-mono text-slate-200 font-semibold">{{ prod.barcode }}</div>
+                  @if (prod.sku) {
+                    <div class="text-[10px] font-mono text-slate-500">SKU: {{ prod.sku }}</div>
+                  }
+                </td>
+
+                <!-- Nombre, Descripción y Badge de Naturaleza -->
+                <td class="p-4 max-w-xs">
+                  <div class="flex items-center space-x-2">
+                    <span class="font-bold text-white text-sm truncate">{{ prod.name }}</span>
+                    <span [class]="'px-2 py-0.5 rounded text-[10px] font-mono font-medium ' + getTypeBadgeClass(prod.productType)">
+                      {{ getTypeLabel(prod.productType) }}
+                    </span>
+                  </div>
+                  <p class="text-slate-400 text-[11px] truncate mt-0.5">{{ prod.description || 'Sin notas adicionales' }}</p>
+                </td>
+
+                <!-- Categoría -->
+                <td class="p-4">
+                  <span class="bg-slate-800 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-lg text-xs font-medium">
+                    {{ prod.categoryName }}
+                  </span>
+                </td>
+
+                <!-- Precios -->
+                <td class="p-4 text-right">
+                  <span class="font-bold text-white text-sm">{{ prod.salePrice | currency:'USD' }}</span>
+                  @if (prod.purchasePrice) {
+                    <span class="block text-[10px] text-slate-500">Costo: {{ prod.purchasePrice | currency:'USD' }}</span>
+                  }
+                </td>
+
+                <!-- Stock & Unidad -->
+                <td class="p-4 text-center">
+                  <div class="font-bold text-sm" [ngClass]="prod.requiresRestock ? 'text-rose-400' : 'text-slate-200'">
+                    {{ prod.currentStock }}
+                    <span class="text-[10px] font-mono font-normal text-slate-400">{{ prod.unitOfMeasure || 'UNIT' }}</span>
+                  </div>
+                  <span class="text-[10px] text-slate-500 block">Mín: {{ prod.minStock }}</span>
+                </td>
+
+                <!-- Estado / Alerta -->
+                <td class="p-4 text-center">
+                  @if (prod.requiresRestock) {
+                    <span class="inline-flex items-center space-x-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full text-[11px] font-semibold">
+                      <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
+                      <span>Stock Bajo</span>
+                    </span>
+                  } @else {
+                    <span class="inline-flex items-center space-x-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[11px] font-semibold">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      <span>Óptimo</span>
+                    </span>
+                  }
+                </td>
+
+                <!-- Acciones -->
+                <td class="p-4 text-center">
+                  <button 
+                    (click)="onDeleteProduct(prod.id, prod.name)"
+                    class="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 text-xs px-3 py-1.5 rounded-xl transition">
+                    Desactivar
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="p-12 text-center text-slate-500">
+                  <div class="max-w-sm mx-auto space-y-2">
+                    <p class="text-3xl">🔍</p>
+                    <p class="font-semibold text-slate-300 text-sm">No se encontraron productos coincidentes</p>
+                    <p class="text-xs text-slate-500">
+                      Prueba cambiando de pestaña o limpiando el filtro de búsqueda.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   }
 
   <!-- ========================================== -->
-  <!-- MODAL: REGISTRAR NUEVO PRODUCTO           -->
+  <!-- MODAL: REGISTRAR NUEVO PRODUCTO UNIVERSAL   -->
   <!-- ========================================== -->
   @if (isModalOpen()) {
-    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 text-white max-h-[90vh] overflow-y-auto">
         
-        <div class="flex justify-between items-center border-b pb-3">
-          <h2 class="text-xl font-bold text-gray-800">Agregar Nuevo Producto</h2>
-          <button (click)="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        <!-- Header Modal -->
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-lg font-bold text-white">Nuevo Artículo en Catálogo</h2>
+            <p class="text-xs text-slate-400">Selecciona la naturaleza y configura los atributos del producto</p>
+          </div>
+          <button (click)="closeModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
         </div>
 
-        <!-- Banner de Error si Spring Boot rechaza la petición -->
+        <!-- Mensaje de Error si la API rechaza -->
         @if (errorMessage()) {
-          <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-            {{ errorMessage() }}
+          <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-3 rounded-xl text-xs flex items-center space-x-2">
+            <span>⚠️</span>
+            <span>{{ errorMessage() }}</span>
           </div>
         }
 
         <form [formGroup]="productForm" (ngSubmit)="onSubmit()" class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Código de Barras -->
+          <!-- SELECCIÓN DE NATURALEZA DEL PRODUCTO -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-2">Naturaleza del Producto *</label>
+            <div class="grid grid-cols-3 gap-2.5">
+              <button 
+                type="button"
+                (click)="setFormProductType('STANDARD')"
+                [ngClass]="productForm.get('productType')?.value === 'STANDARD' 
+                  ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500' 
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between">
+                <span class="text-base mb-1">📦</span>
+                <span class="text-xs font-bold text-white block">Estándar</span>
+                <span class="text-[10px] text-slate-400">Consumo general</span>
+              </button>
+
+              <button 
+                type="button"
+                (click)="setFormProductType('BATCH_EXPIRABLE')"
+                [ngClass]="productForm.get('productType')?.value === 'BATCH_EXPIRABLE' 
+                  ? 'bg-amber-600/20 border-amber-500 text-amber-300 ring-1 ring-amber-500' 
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between">
+                <span class="text-base mb-1">💊</span>
+                <span class="text-xs font-bold text-white block">Lote FEFO</span>
+                <span class="text-[10px] text-slate-400">Vencimiento</span>
+              </button>
+
+              <button 
+                type="button"
+                (click)="setFormProductType('SERIALIZED_ASSET')"
+                [ngClass]="productForm.get('productType')?.value === 'SERIALIZED_ASSET' 
+                  ? 'bg-purple-600/20 border-purple-500 text-purple-300 ring-1 ring-purple-500' 
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'"
+                class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between">
+                <span class="text-base mb-1">⚙️</span>
+                <span class="text-xs font-bold text-white block">Serializado</span>
+                <span class="text-[10px] text-slate-400">Activo / IT</span>
+              </button>
+            </div>
+
+            <!-- Ayuda contextual según el tipo seleccionado -->
+            @if (productForm.get('productType')?.value === 'BATCH_EXPIRABLE') {
+              <div class="mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-start space-x-2">
+                <span>ℹ️</span>
+                <span>Las salidas de stock usarán el algoritmo FEFO (Primero en Vencer, Primero en Salir) sobre los lotes registrados.</span>
+              </div>
+            }
+            @if (productForm.get('productType')?.value === 'SERIALIZED_ASSET') {
+              <div class="mt-2.5 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-300 flex items-start space-x-2">
+                <span>ℹ️</span>
+                <span>Los artículos serializados permiten control de préstamos, responsables asignados y estado de mantenimiento.</span>
+              </div>
+            }
+          </div>
+
+          <!-- CÓDIGO DE BARRAS & SKU -->
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Código de Barras *</label>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Código de Barras *</label>
               <input 
                 type="text" 
                 formControlName="barcode" 
-                placeholder="Ej: 7501003"
-                class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                placeholder="Ej: 75010038492"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
             </div>
 
-            <!-- Categoría -->
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Categoría *</label>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">SKU Interno</label>
+              <input 
+                type="text" 
+                formControlName="sku" 
+                placeholder="Ej: MED-AMX-500"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+            </div>
+          </div>
+
+          <!-- NOMBRE DEL PRODUCTO -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre del Artículo *</label>
+            <input 
+              type="text" 
+              formControlName="name" 
+              placeholder="Ej: Amoxicilina 500mg ó Laptop Dell Core i7"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+          </div>
+
+          <!-- CATEGORÍA Y UNIDAD DE MEDIDA -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Categoría *</label>
               <select 
                 formControlName="categoryId"
-                class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50">
                 <option [ngValue]="null" disabled selected>Selecciona categoría</option>
                 @for (cat of categoryService.categories(); track cat.id) {
                   <option [ngValue]="cat.id">{{ cat.name }}</option>
                 }
               </select>
             </div>
-          </div>
 
-          <!-- Nombre -->
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre del Producto *</label>
-            <input 
-              type="text" 
-              formControlName="name" 
-              placeholder="Ej: Galletas de Avena 100g"
-              class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-          </div>
-
-          <!-- Descripción -->
-          <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Descripción</label>
-            <textarea 
-              formControlName="description" 
-              rows="2" 
-              placeholder="Detalles adicionales del producto"
-              class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
-          </div>
-
-          <!-- Precios -->
-          <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Precio Compra ($)</label>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Unidad de Medida *</label>
+              <select 
+                formControlName="unitOfMeasure"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                @for (opt of unitOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- PRECIOS -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Precio Compra ($)</label>
               <input 
                 type="number" 
                 step="0.01" 
                 formControlName="purchasePrice" 
                 placeholder="0.00"
-                class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Precio Venta ($) *</label>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Precio Venta ($) *</label>
               <input 
                 type="number" 
                 step="0.01" 
                 formControlName="salePrice" 
                 placeholder="0.00"
-                class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
             </div>
           </div>
 
-          <!-- Stocks -->
-          <div class="grid grid-cols-2 gap-4">
+          <!-- STOCKS -->
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Stock Actual *</label>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Stock Inicial *</label>
               <input 
                 type="number" 
                 formControlName="currentStock" 
-                class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Stock Mínimo (Alerta) *</label>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Stock Mínimo (Alerta) *</label>
               <input 
                 type="number" 
                 formControlName="minStock" 
-                class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
             </div>
           </div>
 
-          <!-- Botones de Acción -->
-          <div class="flex justify-end space-x-3 pt-3 border-t">
+          <!-- DESCRIPCIÓN -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Descripción / Especificaciones</label>
+            <textarea 
+              formControlName="description" 
+              rows="2" 
+              placeholder="Especificaciones técnicas, concentración farmacéutica o datos de fabricante"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"></textarea>
+          </div>
+
+          <!-- BOTONES DE ACCIÓN -->
+          <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
             <button 
               type="button" 
               (click)="closeModal()"
-              class="px-4 py-2 border rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition">
+              class="px-4 py-2 border border-slate-700 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition">
               Cancelar
             </button>
             <button 
               type="submit" 
               [disabled]="isSubmitting() || productForm.invalid"
-              class="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold shadow-sm transition">
-              {{ isSubmitting() ? 'Guardando...' : 'Guardar Producto' }}
+              class="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/20 transition flex items-center space-x-2">
+              @if (isSubmitting()) {
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Guardando...</span>
+              } @else {
+                <span>Registrar en Inventario</span>
+              }
             </button>
           </div>
         </form>
