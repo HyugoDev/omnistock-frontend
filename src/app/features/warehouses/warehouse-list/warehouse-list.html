@@ -1,0 +1,352 @@
+<div class="space-y-6">
+  <!-- ENCABEZADO PRINCIPAL -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center space-x-3">
+        <h1 class="text-2xl font-black text-white tracking-tight">🏛️ Red de Locales & Bodegas</h1>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          Multi-Sucursal & Logística
+        </span>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">
+        Gestiona las sucursales físicas, centros de distribución y unidades de transporte de tu empresa.
+      </p>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <button 
+        (click)="warehouseService.loadWarehouses().subscribe()"
+        [disabled]="warehouseService.isLoading()"
+        class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-700/80 transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" [ngClass]="{'animate-spin': warehouseService.isLoading()}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>Sincronizar</span>
+      </button>
+
+      <button 
+        (click)="openCreateModal()"
+        class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>+ Nuevo Local / Bodega</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TARJETAS DE RESUMEN KPI -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div>
+        <p class="text-[11px] text-slate-400 font-medium uppercase">Total Locales</p>
+        <p class="text-xl font-bold text-white mt-0.5">{{ warehouseService.warehouses().length }}</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-sm">
+        🏛️
+      </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div>
+        <p class="text-[11px] text-slate-400 font-medium uppercase">Locales Físicos</p>
+        <p class="text-xl font-bold text-emerald-400 mt-0.5">{{ warehouseService.physicalWarehouses().length }}</p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-sm">
+        🏢
+      </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div>
+        <p class="text-[11px] text-slate-400 font-medium uppercase">En Tránsito</p>
+        <p class="text-xl font-bold text-amber-400 mt-0.5">
+          {{ warehouseService.warehouses().length - warehouseService.physicalWarehouses().length }}
+        </p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold text-sm">
+        🚚
+      </div>
+    </div>
+
+    <div class="bg-slate-900/60 border border-slate-800 p-3.5 rounded-2xl flex items-center justify-between">
+      <div class="overflow-hidden">
+        <p class="text-[11px] text-slate-400 font-medium uppercase">Bodega en Uso</p>
+        <p class="text-sm font-bold text-blue-400 mt-0.5 truncate">
+          {{ warehouseService.activeWarehouse()?.name || 'Ninguna' }}
+        </p>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-sm flex-shrink-0">
+        ✓
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADO DE CARGA -->
+  @if (warehouseService.isLoading()) {
+    <div class="text-center py-16 bg-slate-900/40 border border-slate-800 rounded-2xl">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+      <p class="text-slate-400 text-xs mt-3">Cargando red de almacenes...</p>
+    </div>
+  } @else {
+    <!-- GRID DE LOCALES Y BODEGAS -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      @for (wh of warehouseService.warehouses(); track wh.id) {
+        <div 
+          [ngClass]="warehouseService.activeWarehouse()?.id === wh.id ? 'bg-slate-900/90 border-blue-500/50 ring-1 ring-blue-500/30' : 'bg-slate-900/60 border-slate-800/80'"
+          class="border rounded-2xl p-5 shadow-xl transition flex flex-col justify-between space-y-4 backdrop-blur-md hover:border-slate-700">
+          
+          <!-- Encabezado de la Tarjeta -->
+          <div>
+            <div class="flex items-start justify-between">
+              <div class="flex items-center space-x-3 overflow-hidden">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                  [ngClass]="wh.isTransit ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'">
+                  {{ wh.isTransit ? '🚚' : '🏢' }}
+                </div>
+                <div class="overflow-hidden">
+                  <h3 class="font-bold text-white text-sm truncate">{{ wh.name }}</h3>
+                  <span class="text-[10px] font-mono text-slate-500 block">{{ wh.code }}</span>
+                </div>
+              </div>
+
+              <!-- Badge de Tipo -->
+              @if (wh.isTransit) {
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  Tránsito
+                </span>
+              } @else {
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Físico
+                </span>
+              }
+            </div>
+
+            <!-- Dirección -->
+            <p class="text-xs text-slate-400 mt-3 line-clamp-2">
+              📍 {{ wh.address || 'Sin dirección física especificada' }}
+            </p>
+          </div>
+
+          <!-- Estado y Acciones -->
+          <div class="space-y-3 pt-3 border-t border-slate-800">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-500 text-[11px]">Estado:</span>
+              @if (wh.active) {
+                <span class="inline-flex items-center space-x-1 text-emerald-400 font-semibold text-[11px]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>Operativo</span>
+                </span>
+              } @else {
+                <span class="text-slate-500 text-[11px]">Inactivo</span>
+              }
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              @if (warehouseService.activeWarehouse()?.id === wh.id) {
+                <div class="col-span-2 py-2 px-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-bold text-center flex items-center justify-center space-x-1.5">
+                  <span>✓</span>
+                  <span>Almacén Activo de Trabajo</span>
+                </div>
+              } @else {
+                <button 
+                  (click)="selectAsActive(wh)"
+                  class="col-span-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition">
+                  ● Usar este Almacén
+                </button>
+              }
+
+              <button 
+                (click)="openStockModal(wh)"
+                class="py-1.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition flex items-center justify-center space-x-1">
+                <span>📦</span>
+                <span>Ver Stock</span>
+              </button>
+
+              <button 
+                (click)="openEditModal(wh)"
+                class="py-1.5 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition flex items-center justify-center space-x-1">
+                <span>✏️</span>
+                <span>Editar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="col-span-full p-12 text-center bg-slate-900/60 border border-slate-800 rounded-2xl text-slate-400">
+          <p class="text-3xl mb-2">🏛️</p>
+          <p class="font-bold text-white text-sm">No hay almacenes registrados</p>
+          <p class="text-xs text-slate-500 mt-1">Haz clic en <strong>+ Nuevo Local / Bodega</strong> para dar de alta tu primera sucursal.</p>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: REGISTRAR / EDITAR LOCAL           -->
+  <!-- ========================================== -->
+  @if (isCreateModalOpen()) {
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-white">
+        
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">🏛️</span>
+            <div>
+              <h2 class="text-base font-bold text-white">
+                {{ editingWarehouseId() ? 'Editar Sucursal / Local' : 'Nuevo Local o Bodega' }}
+              </h2>
+              <p class="text-xs text-slate-400">Configura los datos del punto de inventario</p>
+            </div>
+          </div>
+          <button (click)="closeModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+
+        @if (errorMessage()) {
+          <div class="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-2.5 rounded-xl text-xs flex items-center space-x-2">
+            <span>⚠️</span>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+
+        <form [formGroup]="warehouseForm" (ngSubmit)="submitWarehouse()" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre del Local o Almacén *</label>
+            <input 
+              type="text" 
+              formControlName="name" 
+              placeholder="Ej: Sucursal Norte Mostrador POS"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Código Único de Identificación *</label>
+            <input 
+              type="text" 
+              formControlName="code" 
+              placeholder="Ej: SUC-NORTE"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Dirección Física / Ubicación</label>
+            <input 
+              type="text" 
+              formControlName="address" 
+              placeholder="Ej: Plaza Comercial Norte Local 12"
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+          </div>
+
+          <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center space-x-3">
+            <input 
+              type="checkbox" 
+              id="isTransitCheck" 
+              formControlName="isTransit"
+              class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-slate-900 border-slate-700" />
+            <label for="isTransitCheck" class="text-xs text-slate-300">
+              <strong class="text-white block">Unidad de Reparto / En Tránsito</strong>
+              <span class="text-[11px] text-slate-500">Marcar si corresponde a un vehículo o camión logístico para transferencias</span>
+            </label>
+          </div>
+
+          <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+            <button 
+              type="button" 
+              (click)="closeModal()"
+              class="px-4 py-2 border border-slate-700 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition">
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              [disabled]="isSubmitting() || warehouseForm.invalid"
+              class="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-40 text-white rounded-xl text-xs font-bold transition">
+              {{ isSubmitting() ? 'Guardando...' : (editingWarehouseId() ? 'Actualizar Local' : 'Registrar Local') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- MODAL: CONSULTA DE EXISTENCIAS EN BODEGA   -->
+  <!-- ========================================== -->
+  @if (isStockModalOpen()) {
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-white max-h-[90vh] overflow-y-auto">
+        
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <span class="text-xl">📦</span>
+            <div>
+              <h2 class="text-base font-bold text-white">Existencias Físicas</h2>
+              <p class="text-xs text-slate-400">{{ selectedWarehouse()?.name }} ({{ selectedWarehouse()?.code }})</p>
+            </div>
+          </div>
+          <button (click)="closeStockModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+
+        @if (isLoadingStock()) {
+          <div class="text-center py-10">
+            <div class="inline-block animate-spin rounded-full h-7 w-7 border-4 border-blue-500 border-t-transparent"></div>
+            <p class="text-slate-400 text-xs mt-2">Consultando inventario en almacén...</p>
+          </div>
+        } @else {
+          <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-900/80 text-slate-400 text-[10px] font-mono uppercase border-b border-slate-800">
+                <tr>
+                  <th class="p-3">Artículo</th>
+                  <th class="p-3">Código / SKU</th>
+                  <th class="p-3 text-right">Existencia</th>
+                  <th class="p-3 text-center">Nivel</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800 text-xs">
+                @for (item of warehouseStock(); track item.id) {
+                  <tr>
+                    <td class="p-3 font-bold text-white">{{ item.productName }}</td>
+                    <td class="p-3 font-mono text-slate-400 text-[11px]">
+                      {{ item.productBarcode }}
+                      @if (item.productSku) {
+                        <span class="text-slate-500 block text-[10px]">SKU: {{ item.productSku }}</span>
+                      }
+                    </td>
+                    <td class="p-3 text-right font-mono font-bold text-white">{{ item.quantity }}</td>
+                    <td class="p-3 text-center">
+                      @if (item.quantity <= item.minStock) {
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                          ⚠️ Bajo
+                        </span>
+                      } @else {
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          ✓ Óptimo
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="p-8 text-center text-slate-500">
+                      No hay artículos con existencias registradas en este local.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <div class="flex justify-end pt-2 border-t border-slate-800">
+          <button 
+            type="button" 
+            (click)="closeStockModal()"
+            class="px-4 py-2 border border-slate-700 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

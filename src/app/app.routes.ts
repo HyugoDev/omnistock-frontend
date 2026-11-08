@@ -29,5 +29,13 @@ export const routes: Routes = [
         (m) => m.ProductList
       ),
   },
+  {
+    path: 'warehouses',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/warehouses/warehouse-list/warehouse-list').then(
+        (m) => m.WarehouseList
+      ),
+  },
   { path: '**', redirectTo: 'dashboard' },
 ];

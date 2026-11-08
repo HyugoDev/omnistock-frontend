@@ -79,12 +79,35 @@ export class WarehouseService {
     localStorage.setItem('omnistock_active_warehouse_id', warehouse.id.toString());
   }
 
-  createWarehouse(payload: { code: string; name: string; address?: string }): Observable<Warehouse> {
+  createWarehouse(payload: { code: string; name: string; address?: string; isTransit?: boolean }): Observable<Warehouse> {
     return this.http.post<Warehouse>(this.apiUrl, payload).pipe(
       tap((newWh) => {
         this.warehouses.update(list => [...list, newWh]);
         if (!this.activeWarehouse()) {
           this.selectWarehouse(newWh);
+        }
+      })
+    );
+  }
+
+  updateWarehouse(id: number, payload: { name: string; address?: string; active?: boolean; isTransit?: boolean }): Observable<Warehouse> {
+    return this.http.put<Warehouse>(`${this.apiUrl}/${id}`, payload).pipe(
+      tap((updated) => {
+        this.warehouses.update(list => list.map(w => w.id === id ? updated : w));
+        if (this.activeWarehouse()?.id === id) {
+          this.activeWarehouse.set(updated);
+        }
+      })
+    );
+  }
+
+  deleteWarehouse(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+      tap(() => {
+        this.warehouses.update(list => list.filter(w => w.id !== id));
+        if (this.activeWarehouse()?.id === id) {
+          const remaining = this.warehouses().find(w => w.active && !w.isTransit) || null;
+          this.activeWarehouse.set(remaining);
         }
       })
     );
