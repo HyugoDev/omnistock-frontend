@@ -18,6 +18,17 @@ export interface Session {
   userAgent?: string;
 }
 
+export interface ActiveSession {
+  id: string;
+  token: string;
+  userId: string;
+  expiresAt: string;
+  createdAt: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  isCurrent?: boolean;
+}
+
 export interface AuthResponse {
   token: string;
   user: User;
@@ -38,4 +49,15 @@ export interface RegisterCredentials {
   name: string;
   email: string;
   password: string;
+}
+
+export interface UpdateProfileRequest {
+  name: string;
+  image?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  revokeOtherSessions?: boolean;
 }

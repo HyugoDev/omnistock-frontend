@@ -9,6 +9,9 @@ import {
   SessionResponse,
   LoginCredentials,
   RegisterCredentials,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
+  ActiveSession,
 } from '../models/auth.model';
 
 @Injectable({
@@ -22,10 +25,21 @@ export class AuthService {
   private readonly TOKEN_KEY = 'omnistock_token';
   private readonly USER_KEY = 'omnistock_user';
 
-  // Signals para reactividad pura en Angular 19
+  // Signals para reactividad de sesión
   readonly currentUser = signal<User | null>(this.getStoredUser());
   readonly token = signal<string | null>(this.getStoredToken());
   readonly isAuthenticated = computed(() => !!this.currentUser() && !!this.token());
+
+  // Signal para controlar el Slide-over Drawer de Perfil
+  readonly isProfileDrawerOpen = signal<boolean>(false);
+
+  openProfileDrawer(): void {
+    this.isProfileDrawerOpen.set(true);
+  }
+
+  closeProfileDrawer(): void {
+    this.isProfileDrawerOpen.set(false);
+  }
 
   /**
    * Inicia sesión contra Better Auth (Bun + Hono)
@@ -63,6 +77,72 @@ export class AuthService {
           return throwError(() => err);
         })
       );
+  }
+
+  /**
+   * Actualiza los datos de perfil (nombre, avatar)
+   */
+  updateProfile(data: UpdateProfileRequest): Observable<{ user: User }> {
+    return this.http
+      .post<{ user: User }>(`${this.authUrl}/update-user`, data, {
+        withCredentials: true,
+      })
+      .pipe(
+        tap((res) => {
+          if (res?.user) {
+            this.currentUser.set(res.user);
+            localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
+          } else {
+            // Si Better Auth devuelve vacío o formato directo
+            const current = this.currentUser();
+            if (current) {
+              const updated = { ...current, name: data.name, image: data.image || current.image };
+              this.currentUser.set(updated);
+              localStorage.setItem(this.USER_KEY, JSON.stringify(updated));
+            }
+          }
+        })
+      );
+  }
+
+  /**
+   * Cambia la contraseña del usuario
+   */
+  changePassword(data: ChangePasswordRequest): Observable<{ status: boolean }> {
+    return this.http.post<{ status: boolean }>(`${this.authUrl}/change-password`, data, {
+      withCredentials: true,
+    });
+  }
+
+  /**
+   * Lista todas las sesiones activas del usuario en Better Auth
+   */
+  listSessions(): Observable<ActiveSession[]> {
+    return this.http.get<ActiveSession[]>(`${this.authUrl}/list-sessions`, {
+      withCredentials: true,
+    });
+  }
+
+  /**
+   * Cierra/revoca una sesión específica en otro dispositivo
+   */
+  revokeSession(token: string): Observable<{ status: boolean }> {
+    return this.http.post<{ status: boolean }>(
+      `${this.authUrl}/revoke-session`,
+      { token },
+      { withCredentials: true }
+    );
+  }
+
+  /**
+   * Cierra todas las sesiones excepto la actual
+   */
+  revokeOtherSessions(): Observable<{ status: boolean }> {
+    return this.http.post<{ status: boolean }>(
+      `${this.authUrl}/revoke-other-sessions`,
+      {},
+      { withCredentials: true }
+    );
   }
 
   /**
@@ -116,6 +196,7 @@ export class AuthService {
   private clearSession(): void {
     this.token.set(null);
     this.currentUser.set(null);
+    this.isProfileDrawerOpen.set(false);
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     this.router.navigate(['/login']);
