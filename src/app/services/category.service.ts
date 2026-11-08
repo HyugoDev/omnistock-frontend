@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { CategoryResponse } from '../models/category.model';
+import { CategoryResponse, CategoryRequest } from '../models/category.model';
 
 @Injectable({
   providedIn: 'root'
@@ -17,6 +17,12 @@ export class CategoryService {
   getAllCategories(): Observable<CategoryResponse[]> {
     return this.http.get<CategoryResponse[]>(this.endpoint).pipe(
       tap((data) => this.categories.set(data))
+    );
+  }
+
+  createCategory(category: CategoryRequest): Observable<CategoryResponse> {
+    return this.http.post<CategoryResponse>(this.endpoint, category).pipe(
+      tap((newCat) => this.categories.update(list => [...list, newCat]))
     );
   }
 }

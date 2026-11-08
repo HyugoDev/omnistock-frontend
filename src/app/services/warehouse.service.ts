@@ -79,6 +79,17 @@ export class WarehouseService {
     localStorage.setItem('omnistock_active_warehouse_id', warehouse.id.toString());
   }
 
+  createWarehouse(payload: { code: string; name: string; address?: string }): Observable<Warehouse> {
+    return this.http.post<Warehouse>(this.apiUrl, payload).pipe(
+      tap((newWh) => {
+        this.warehouses.update(list => [...list, newWh]);
+        if (!this.activeWarehouse()) {
+          this.selectWarehouse(newWh);
+        }
+      })
+    );
+  }
+
   getStockByWarehouse(warehouseId: number): Observable<WarehouseStockItem[]> {
     return this.http.get<WarehouseStockItem[]>(`${this.apiUrl}/${warehouseId}/stock`);
   }
